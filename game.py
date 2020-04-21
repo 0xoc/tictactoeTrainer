@@ -5,6 +5,7 @@ from os import system, name
 from ast import literal_eval as make_tuple
 import copy
 import random
+import jsonpickle
 
 
 # define our clear function
@@ -30,6 +31,7 @@ class Game:
         self.win_count = win_count  # number of X's or O's in a line to win
         self.size = size  # size of the board
         self.board = [[empty for j in range(size)] for i in range(size)]  # initialize the board
+        self.last_move = None
 
     def boxes(self, box_size: int):
         """A list of all possible distinct box_size x box_size boxes in the bord"""
@@ -106,11 +108,15 @@ class Game:
 
     def print_board(self):
         clear()
-        print(tabulate(self.board, headers=[str(i) for i in range(self.size)], showindex="always", tablefmt="grid"))
+        the_board = copy.deepcopy(self.board)
+        if self.last_move is not None:
+            the_board[self.last_move[0]][self.last_move[1]] = '.' + the_board[self.last_move[0]][self.last_move[1]] + '.'
+        print(tabulate(the_board, headers=[str(i) for i in range(self.size)], showindex="always", tablefmt="grid"))
 
     def move_to(self, i, j):
         self.board[i][j] = self.current_player
         self.current_player = x if self.current_player == o else o
+        self.last_move = (i, j)
 
     @staticmethod
     def result(base_game, action):
@@ -204,21 +210,26 @@ def mcts(game):
 
     best_node = max(root.children, key=lambda n: n.get_avg())
 
-    return best_node.action
+    return best_node.action, root
 
 
-game = Game(5, 4, x)
+game = Game(7, 4, x)
+
 run = True
+
+file = open("learned.json", 'w')
+
 while run:
     game.print_board()
     i, j = make_tuple(input("Enter row, col: "))
     game.move_to(i, j)
     game.print_board()
     print("Waiting for AI move ...")
-    ai_move = mcts(game)
+    ai_move, root = mcts(game)
+    file.write(jsonpickle.encode(root))
+    file.close()
     game.move_to(ai_move[0], ai_move[1])
     finished, winner = game.terminal()
-
     if finished:
         run = False
 
