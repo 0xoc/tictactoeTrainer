@@ -1,25 +1,8 @@
-from math import sqrt, log
-
 from tabulate import tabulate
 from os import system, name
-from ast import literal_eval as make_tuple
 import copy
-import random
-import jsonpickle
 
-
-# define our clear function
-def clear():
-    # for windows
-    if name == 'nt':
-        _ = system('cls')
-
-        # for mac and linux(here, os.name is 'posix')
-    else:
-        _ = system('clear')
-
-
-empty = ""
+empty = " "
 o = "O"
 x = "x"
 
@@ -107,10 +90,23 @@ class Game:
         return True, _winner
 
     def print_board(self):
+        def clear():
+            # for windows
+            if name == 'nt':
+                _ = system('cls')
+
+                # for mac and linux(here, os.name is 'posix')
+            else:
+                _ = system('clear')
+
         clear()
         the_board = copy.deepcopy(self.board)
+
+        # mark the last move
         if self.last_move is not None:
-            the_board[self.last_move[0]][self.last_move[1]] = '.' + the_board[self.last_move[0]][self.last_move[1]] + '.'
+            the_board[self.last_move[0]][self.last_move[1]] = '.' + the_board[self.last_move[0]][
+                self.last_move[1]] + '.'
+
         print(tabulate(the_board, headers=[str(i) for i in range(self.size)], showindex="always", tablefmt="grid"))
 
     def move_to(self, i, j):
@@ -125,112 +121,21 @@ class Game:
 
         return result_game
 
+    @staticmethod
+    def chain_result(base_game, action_list):
+        """Advance the game from current state according to the action_list"""
+        result = copy.deepcopy(base_game)
 
-class Node:
-    def __init__(self, game: Game, parent, action):
-        self.action = action
-        self.game: Game = copy.deepcopy(game)
-        self.parent = parent
-        self.weight = 0
-        self.simulations = 0
-        self.children = []
+        for action in action_list:
+            result.move_to(action[0], action[1])
 
-    def get_avg(self):
-        return self.weight / self.simulations
+        return result
 
+    def id(self):
+        """String representation of the current game state"""
+        _id = ""
+        for row in self.board:
+            for cell in row:
+                _id += cell
 
-ai_playing_as = o
-
-
-def traverse(root: Node) -> Node:
-    node = root
-
-    while len(node.children):
-        node = ucb_best(node.children)
-
-    expand(node)
-
-    if len(node.children):
-        return node.children[0]
-
-    return node
-
-
-def play_out(game: Game):
-    terminated, the_winner = game.terminal()
-
-    if terminated:
-        if the_winner is None:
-            return 0
-        elif the_winner == ai_playing_as:
-            return 1
-        else:
-            return -1
-
-    return play_out(Game.result(game, random.choice(game.actions())))
-
-
-def propagate(node, result):
-    node.weight += result
-    node.simulations += 1
-
-    if node.parent:
-        propagate(node.parent, result)
-
-
-def expand(node):
-    for action in node.game.actions():
-        n = Node(Game.result(node.game, action), node, action)
-        node.children.append(n)
-
-
-def ucb(node):
-    return node.get_avg() + sqrt(2) * sqrt(log(node.parent.simulations) / node.simulations)
-
-
-def ucb_best(nodes) -> Node:
-    for node in nodes:
-        if node.simulations == 0:
-            return node
-
-    return max(nodes, key=lambda n: ucb(n))
-
-
-def mcts(game):
-    root = Node(game, None, None)
-    max_generations = 10000
-
-    for i in range(max_generations):
-        nxt_node = traverse(root)
-        node_value = play_out(nxt_node.game)
-        propagate(nxt_node, node_value)
-
-        if i % 100 == 0:
-            print(str(i) + "/" + str(max_generations), end='\r')
-
-    best_node = max(root.children, key=lambda n: n.get_avg())
-
-    return best_node.action, root
-
-
-game = Game(7, 4, x)
-
-run = True
-
-file = open("learned.json", 'w')
-
-while run:
-    game.print_board()
-    i, j = make_tuple(input("Enter row, col: "))
-    game.move_to(i, j)
-    game.print_board()
-    print("Waiting for AI move ...")
-    ai_move, root = mcts(game)
-    file.write(jsonpickle.encode(root))
-    file.close()
-    game.move_to(ai_move[0], ai_move[1])
-    finished, winner = game.terminal()
-    if finished:
-        run = False
-
-print("The winner is " + winner)
+        return _id
