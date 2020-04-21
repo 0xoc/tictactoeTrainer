@@ -20,7 +20,7 @@ while run:
         run = False
 
     print("Waiting for AI move ... ")
-    agent = MCTS(game_state=game, playing_as=o)
+    agent = MCTS.load(game_state=game, playing_as=o)
     ai_move = agent.mcts()
     game.move_to(ai_move[0], ai_move[1])
 

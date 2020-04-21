@@ -1,5 +1,7 @@
 from abc import ABC
 
+import jsonpickle
+
 from game import Game, x, o
 import copy
 import random
@@ -117,6 +119,32 @@ class MCTS:
 
         return max(nodes, key=lambda n: self.ucb(n))
 
+    def store(self):
+        """Store the current MCTS state in a json file"""
+        print("Saving current MCTS generated tree ...")
+
+        file = open("learn_data/%s_%s.json" % (self.root.game_state.id(), self.playing_as), 'w')
+        json_data = jsonpickle.encode(self)
+        file.write(json_data)
+        file.close()
+
+        print("Tree saved successfully")
+
+    @staticmethod
+    def load(game_state: Game, playing_as):
+        """Load previously saved tree"""
+        try:
+            file = open("learn_data/%s_%s.json" % (game_state.id(), playing_as), 'r')
+        except FileNotFoundError:
+            return MCTS(game_state, playing_as)
+
+        print("Loading mcts tree ...")
+        json_data = file.read()
+        file.close()
+        mcts = jsonpickle.decode(json_data)
+        print("Tree loaded successfully")
+        return mcts
+
     def mcts(self):
         """Apply the MCTS algorithm from the root and return the best action"""
 
@@ -131,4 +159,5 @@ class MCTS:
 
         best_node = max(self.root.children, key=lambda n: n.get_avg())
 
+        self.store()
         return best_node.action
