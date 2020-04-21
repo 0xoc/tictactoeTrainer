@@ -5,7 +5,7 @@ from game import Game, x, o
 from ai import MCTS
 
 
-game = Game(5, 4, x)
+game = Game(7, 4, x)
 
 run = True
 
